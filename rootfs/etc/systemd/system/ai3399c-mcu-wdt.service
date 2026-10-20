@@ -1,0 +1,12 @@
+[Unit]
+Description=Signway AI3399-C MCU watchdog
+DefaultDependencies=no
+After=local-fs.target
+Before=basic.target
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/ai3399c-mcu-wdt
+Restart=always
+RestartSec=2
+[Install]
+WantedBy=sysinit.target multi-user.target

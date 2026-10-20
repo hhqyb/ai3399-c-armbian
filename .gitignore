@@ -1,0 +1,6 @@
+*.img
+*.img.xz
+*.bin
+__pycache__/
+*.pyc
+bootlog.txt

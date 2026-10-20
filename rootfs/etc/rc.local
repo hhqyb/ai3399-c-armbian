@@ -1,0 +1,54 @@
+#!/bin/sh
+# Signway AI3399-C MCU watchdog. Installed automatically from this image.
+# Vendor stop: i2c addr 0x70 register 0x1c = 0. Feed: register 0x20 = 1.
+# Never read the MCU; a read can wedge i2c-0, which is shared with RK808.
+mkdir -p /usr/local/sbin /etc/systemd/system/sysinit.target.wants /etc/systemd/system/multi-user.target.wants
+cat > /usr/local/sbin/ai3399c-mcu-wdt << 'EOF'
+#!/usr/bin/env python3
+import fcntl, os, time
+def w(reg, val):
+    fd = os.open('/dev/i2c-0', os.O_RDWR)
+    try:
+        fcntl.ioctl(fd, 0x0706, 0x70)
+        os.write(fd, bytes((reg, val)))
+    finally:
+        os.close(fd)
+if 'ff3c0000' not in os.path.realpath('/sys/bus/i2c/devices/i2c-0'):
+    raise SystemExit('unexpected i2c-0')
+try:
+    open('/run/ai3399c-mcu-wdt.pid','w').write(str(os.getpid()))
+except OSError:
+    pass
+while True:
+    try:
+        w(0x1C, 0)
+        w(0x20, 1)
+    except OSError:
+        pass
+    time.sleep(10)
+EOF
+chmod 755 /usr/local/sbin/ai3399c-mcu-wdt
+cat > /etc/systemd/system/ai3399c-mcu-wdt.service << 'EOF'
+[Unit]
+Description=Signway AI3399-C MCU watchdog
+DefaultDependencies=no
+After=local-fs.target
+Before=basic.target
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/ai3399c-mcu-wdt
+Restart=always
+RestartSec=2
+[Install]
+WantedBy=sysinit.target multi-user.target
+EOF
+ln -sfn /etc/systemd/system/ai3399c-mcu-wdt.service /etc/systemd/system/sysinit.target.wants/ai3399c-mcu-wdt.service
+ln -sfn /etc/systemd/system/ai3399c-mcu-wdt.service /etc/systemd/system/multi-user.target.wants/ai3399c-mcu-wdt.service
+if [ -f /run/ai3399c-mcu-wdt.pid ]; then
+    pid=$(cat /run/ai3399c-mcu-wdt.pid 2>/dev/null || true)
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        exit 0
+    fi
+fi
+/usr/local/sbin/ai3399c-mcu-wdt >/var/log/ai3399c-mcu-wdt.log 2>&1 &
+exit 0

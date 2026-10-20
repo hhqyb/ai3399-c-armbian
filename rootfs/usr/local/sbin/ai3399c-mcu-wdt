@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+import fcntl, os, time
+def w(reg, val):
+    fd = os.open('/dev/i2c-0', os.O_RDWR)
+    try:
+        fcntl.ioctl(fd, 0x0706, 0x70)
+        os.write(fd, bytes((reg, val)))
+    finally:
+        os.close(fd)
+if 'ff3c0000' not in os.path.realpath('/sys/bus/i2c/devices/i2c-0'):
+    raise SystemExit('unexpected i2c-0')
+try:
+    open('/run/ai3399c-mcu-wdt.pid','w').write(str(os.getpid()))
+except OSError:
+    pass
+while True:
+    try:
+        w(0x1C, 0)
+        w(0x20, 1)
+    except OSError:
+        pass
+    time.sleep(10)
