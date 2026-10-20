@@ -10,9 +10,24 @@
 - 只写这两只寄存器，不要读 MCU。读寄存器会把 `i2c-0`（`ff3c0000`）卡死，而这路总线还挂着 RK808 和 CPU 供电。
 - 可见型号改成 `Signway AI3399-C`，主机名改成 `ai3399-c`。`BOARD=rockpi-4a` 和 `fdtfile=rockchip/rk3399-rock-pi-4a.dtb` 保持不变，否则 Armbian 的启动脚本和设备树文件名对不上。
 
-## 生成镜像
+## 获取 rockpi-4a-minimal.img
 
-准备一份未修改的 Armbian Rock Pi 4A minimal 镜像，然后：
+这是 Armbian 社区版 Rock Pi 4A 的原始镜像，不是本仓库生成的。`patch_image.py` 按这一版的目录结构改写，请不要换成更新的滚动构建。
+
+- 板卡页面：<https://www.armbian.com/rockpi-4a/>
+- 规格：Debian 13 Trixie，Minimal（CLI），kernel `current` 6.18.57，版本 `26.11.0-trunk.100`，2026-10-17
+- 直接下载：<https://github.com/armbian/community/releases/download/26.11.0-trunk.100/Armbian_community_26.11.0-trunk.100_Rockpi-4a_trixie_current_6.18.57_minimal.img.xz>
+- 发布页里的跳转地址：<https://dl.armbian.com/rockpi-4a/Trixie_current_minimal>
+- 校验文件：<https://dl.armbian.com/rockpi-4a/Trixie_current_minimal.sha>，签名和种子把后缀换成 `.asc`、`.torrent`。这些跳转以后可能指向更新的构建；对不上时，以文件名中的 `26.11.0-trunk.100`、`6.18.57` 和下面的 SHA256 为准。
+
+下载后核对压缩包：
+
+- 大小：375580236 字节
+- SHA256：`6af607deb109e13dc88be29696ce1ec8ae77ff80e9415f47d9e66e6854f37915`
+
+解压后得到约 1.8GB 的 `.img`（1858076672 字节）。文件名可以保持官方名字，也可以改成 `rockpi-4a-minimal.img`，后面的命令都能用。Windows 用 7-Zip 解压；Linux 用 `xz -dk`。
+
+## 生成镜像
 
 ```
 python patch_image.py rockpi-4a-minimal.img --out ai3399-c-armbian.img
@@ -21,7 +36,7 @@ python patch_image.py ai3399-c-armbian.img --check
 
 `patch_image.py` 会改设备树和 U-Boot 里的 model 字符串、`/etc/armbian-release`、主机名，以及 `/etc/rc.local`。ext4 元数据校验和会一起重算。文件系统必须是干净卸载的。
 
-镜像大约 1.8GB，超过 GitHub 单文件限制，所以没有放进这个仓库。
+改好的镜像大约 1.8GB，超过 GitHub 单文件限制，所以没有放进这个仓库。
 
 ## 刷写
 
